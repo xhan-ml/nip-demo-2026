@@ -1,0 +1,17 @@
+# 虚拟环境，绝对不上传
+.venv/
+venv/
+
+# SwanLab日志
+swanlog/
+
+# 模型权重大文件，不要上传
+*.bin
+
+# PyCharm配置文件夹
+.idea/
+__pycache__/
+*.pyc
+
+#系统缓存
+.DS_Store
