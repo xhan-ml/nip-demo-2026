@@ -7,11 +7,11 @@ from transformers import get_linear_schedule_with_warmup
 import swanlab
 
 from config import CFG
-from model import build_bert_model
+from model import BertTextClassifier
 from train import set_seed, train_one_epoch, evaluate_model
 from dataset import load_toutiao_single, ToutiaoDataset
 
-
+dev = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 def main():
     # 设置随机种子，保证结果可以复现
     set_seed(CFG.seed)
@@ -54,11 +54,13 @@ def main():
     test_loader = DataLoader(test_dataset, batch_size=CFG.batch_size, shuffle=False)
 
     # 创建bert模型
-    model = build_bert_model(
-        model_path=CFG.model_name,
-        num_labels=len(label2id),
-        device=CFG.device
+    num_label = 15
+    model = BertTextClassifier(
+        model_name=CFG.model_name,
+        num_classes=num_label,
+        dropout_prob=CFG.dropout
     )
+    model = model.to(dev)
 
     # 计算总步数、warmup步数
     total_step = len(train_loader) * CFG.epochs
@@ -79,9 +81,9 @@ def main():
         print("\n======== Epoch", epoch + 1, "/", CFG.epochs, "========")
 
         # 训练一轮
-        train_loss = train_one_epoch(model, train_loader, optimizer, scheduler, CFG.device)
+        train_loss = train_one_epoch(model, train_loader, optimizer, scheduler, dev)
         # 验证集评估
-        val_loss, val_acc = evaluate_model(model, val_loader, CFG.device)
+        val_loss, val_acc = evaluate_model(model, val_loader, dev)
 
         # 记录到swanlab
         swanlab.log({
@@ -102,10 +104,11 @@ def main():
             print("✅保存最优模型，best_val_acc =", round(best_val_acc, 4))
 
     print("\n全部轮次训练结束，加载最优模型做测试集评估")
+    model.eval()
     # 读取保存好的最优权重
-    model.load_state_dict(torch.load("./best_bert_toutiao.bin", map_location=CFG.device))
+    model.load_state_dict(torch.load("./best_bert_toutiao.bin", map_location=dev))
     # 在测试集上评估
-    test_loss, test_acc = evaluate_model(model, test_loader, CFG.device)
+    test_loss, test_acc = evaluate_model(model, test_loader, dev)
 
     swanlab.log({
         "test_loss": test_loss,
