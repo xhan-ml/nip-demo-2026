@@ -1,0 +1,11 @@
+{
+  "seed": 42,
+  "max_len": 64,
+  "batch_size": 2,
+  "epochs": 8,
+  "lr": 2e-5,
+  "warmup_ratio": 0.1,
+  "dropout": 0.1,
+  "model_name": "./model/bert-base-chinese",
+  "swanlab_project": "bert-toutiao-classify"
+}
