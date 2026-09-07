@@ -1,4 +1,3 @@
-# dataset.py
 import torch
 from torch.utils.data import Dataset
 
@@ -21,6 +20,30 @@ def load_toutiao_single(filepath):
     return texts, labels
 
 
+def dynamic_collate_fn(batch):
+    """动态padding，batch内部补齐到本批次最长长度"""
+    input_ids_list = [item["input_ids"] for item in batch]
+    attn_mask_list = [item["attention_mask"] for item in batch]
+    label_list = [item["labels"] for item in batch]
+
+    cur_max_len = max([len(x) for x in input_ids_list])
+
+    batch_input_ids = []
+    batch_attn_mask = []
+    for ids, mask in zip(input_ids_list, attn_mask_list):
+        pad_len = cur_max_len - len(ids)
+        new_ids = ids + [0] * pad_len
+        new_mask = mask + [0] * pad_len
+        batch_input_ids.append(new_ids)
+        batch_attn_mask.append(new_mask)
+
+    return {
+        "input_ids": torch.tensor(batch_input_ids, dtype=torch.long),
+        "attention_mask": torch.tensor(batch_attn_mask, dtype=torch.long),
+        "labels": torch.tensor(label_list, dtype=torch.long)
+    }
+
+
 class ToutiaoDataset(Dataset):
     def __init__(self, texts, labels, tokenizer, max_len, label2id):
         self.texts = texts
@@ -40,12 +63,10 @@ class ToutiaoDataset(Dataset):
         enc = self.tokenizer(
             text,
             max_length=self.max_len,
-            truncation=True,
-            padding="max_length",
-            return_tensors="pt"
+            truncation=True
         )
         return {
-            "input_ids": enc["input_ids"].squeeze(0),
-            "attention_mask": enc["attention_mask"].squeeze(0),
-            "labels": torch.tensor(lab, dtype=torch.long)
+            "input_ids": enc["input_ids"],
+            "attention_mask": enc["attention_mask"],
+            "labels": lab
         }

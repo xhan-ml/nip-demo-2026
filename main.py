@@ -9,7 +9,7 @@ import swanlab
 from config import CFG
 from model import BertTextClassifier
 from train import set_seed, train_one_epoch, evaluate_model
-from dataset import load_toutiao_single, ToutiaoDataset
+from dataset import load_toutiao_single, ToutiaoDataset,dynamic_collate_fn
 
 dev = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 def main():
@@ -49,9 +49,9 @@ def main():
     test_dataset = ToutiaoDataset(test_texts, test_labels, tokenizer, CFG.max_len, label2id)
 
     # 构造DataLoader
-    train_loader = DataLoader(train_dataset, batch_size=CFG.batch_size, shuffle=True)
-    val_loader = DataLoader(val_dataset, batch_size=CFG.batch_size, shuffle=False)
-    test_loader = DataLoader(test_dataset, batch_size=CFG.batch_size, shuffle=False)
+    train_loader = DataLoader(train_dataset, batch_size=CFG.batch_size, shuffle=True,collate_fn=dynamic_collate_fn)
+    val_loader = DataLoader(val_dataset, batch_size=CFG.batch_size, shuffle=False,collate_fn=dynamic_collate_fn)
+    test_loader = DataLoader(test_dataset, batch_size=CFG.batch_size, shuffle=False,collate_fn=dynamic_collate_fn)
 
     # 创建bert模型
     num_label = 15
@@ -75,7 +75,8 @@ def main():
     )
 
     best_val_acc = 0.0
-
+    patience = 2
+    no_improve_count = 0
     # 训练循环
     for epoch in range(CFG.epochs):
         print("\n======== Epoch", epoch + 1, "/", CFG.epochs, "========")
@@ -102,7 +103,15 @@ def main():
             best_val_acc = val_acc
             torch.save(model.state_dict(), "./best_bert_toutiao.bin")
             print("✅保存最优模型，best_val_acc =", round(best_val_acc, 4))
+            no_improve_count = 0  # 有提升，重置计数
+        else:
+            no_improve_count += 1  # 没有提升，计数+1
+            print(f"⚠️验证集无提升，no_improve_count={no_improve_count}/{patience}")
 
+        # ========== 早停触发逻辑 ==========
+        if no_improve_count >= patience:
+            print(f"\n🛑早停触发：连续{patience}轮验证集指标没有提升，终止训练！")
+            break
     print("\n全部轮次训练结束，加载最优模型做测试集评估")
     model.eval()
     # 读取保存好的最优权重
