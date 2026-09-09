@@ -1,14 +1,32 @@
 ## 项目结构
 
-├── demo1.py           # 完整代码：数据加载、模型、训练、评估
+nip‑demo‑2026/
 
-├── .gitignore         # git 忽略配置
+├── .venv/                  # 虚拟环境
 
-├── run_result.txt     # 控制台完整运行输出日志
-## 文件说明
-`demo1.py`：全部业务代码，包含数据集读取、tokenizer 处理、BERT 模型构建、训练循环、评估逻辑。
-`run_result.txt`：完整控制台输出，记录每一轮 epoch loss、验证集指标、测试集详细分类报告。
-`.gitignore`：配置文件，忽略数据集、预训练权重、虚拟环境、日志缓存等大文件，不提交至仓库。
+├── swanlog/                # swanlab日志保存目录
+
+├── model/
+
+│   └── bert‑base‑chinese/  # 本地BERT预训练权重
+
+├── data/
+
+│   └── 数据集文件（train/dev/test）
+
+├── config.json             # 配置文件，新增 weight_decay: 1e‑4
+
+├── config.py               # 配置类，新增weight_decay属性、to_dict输出
+
+├── model.py                # BERT+Linear分类模型
+
+├── train.py                # 训练、评估函数（set_seed、train_one_epoch、evaluate_model）
+
+├── main.py                 # 主程序：数据加载、训练循环、保存最优dev模型、测试集评估
+
+├── requirements.txt        # 依赖列表
+
+└── README.md
 ## 数据集信息
 训练集：3000条  
 验证集：1000条    
@@ -61,6 +79,29 @@ pip install torch transformers tqdm numpy swanlab
 4. 第四组保持epoch=8，提升dropout至0.2，通过增大神经元随机失活抑制过拟合，用于对比正则化带来的效果。可视化结果如下图所示：
 <img width="650" height="499" alt="image" src="https://github.com/user-attachments/assets/4061734b-7426-4c60-8599-0095b000a9b8" />
 
+## 最后实验结果：
+1.参数配置
+
+"max_len": 96,
+ 
+"batch_size": 2,
+  
+"epochs": 20,
+ 
+"lr": 1e-5,
+
+"warmup_ratio": 0.1,
+
+"dropout": 0.25,
+ 
+"patience" : 5,
+ 
+"weight_decay": 1e-4,
+
+2.可视化结果：
+<img width="1202" height="607" alt="image" src="https://github.com/user-attachments/assets/b9249bc5-8c85-49ec-8fc6-d621dfbadd1d" />
+
+test_acc  = 0.8318
 ## 现象总结：
 1. CPU训练场景下，batch_size不能设置过大，否则会造成硬件负载过高，程序崩溃黑屏。
 2. 减少训练轮次（早停）能够有效缓解BERT在小数据集上的过拟合问题，可以带来测试集精度提升。
