@@ -5,7 +5,7 @@ from transformers import AutoTokenizer
 from torch.optim import AdamW
 from transformers import get_linear_schedule_with_warmup
 import swanlab
-
+from checkpoint import save_checkpoint, load_checkpoint
 from config import CFG
 from model import BertTextClassifier
 from train import set_seed, train_one_epoch, evaluate_model
@@ -49,12 +49,24 @@ def main():
     test_dataset = ToutiaoDataset(test_texts, test_labels, tokenizer, CFG.max_len, label2id)
 
     # 构造DataLoader
-    train_loader = DataLoader(train_dataset, batch_size=CFG.batch_size, shuffle=True,collate_fn=dynamic_collate_fn)
-    val_loader = DataLoader(val_dataset, batch_size=CFG.batch_size, shuffle=False,collate_fn=dynamic_collate_fn)
-    test_loader = DataLoader(test_dataset, batch_size=CFG.batch_size, shuffle=False,collate_fn=dynamic_collate_fn)
+    train_loader = DataLoader(train_dataset,
+                              batch_size=CFG.batch_size,
+                              shuffle=True,
+                              collate_fn=dynamic_collate_fn
+                              )
+    val_loader = DataLoader(val_dataset,
+                            batch_size=CFG.batch_size,
+                            shuffle=False,
+                            collate_fn=dynamic_collate_fn
+                            )
+    test_loader = DataLoader(test_dataset,
+                             batch_size=CFG.batch_size,
+                             shuffle=False,
+                             collate_fn=dynamic_collate_fn
+                             )
 
     # 创建bert模型
-    num_label = 15
+    num_label = len(label2id)
     model = BertTextClassifier(
         model_name=CFG.model_name,
         num_classes=num_label,
@@ -113,7 +125,15 @@ def main():
         # 如果当前验证集准确率是历史最好，保存模型权重
         if val_acc > best_val_acc:
             best_val_acc = val_acc
-            torch.save(model.state_dict(), "./best_bert_toutiao.bin")
+
+            save_checkpoint("./full_best_checkpoint.bin",
+                            epoch,
+                            model,
+                            optimizer,
+                            scheduler,
+                            best_val_acc,
+                            no_improve_count
+                            )
             print("✅保存最优模型，best_val_acc =", round(best_val_acc, 4))
             no_improve_count = 0  # 有提升，重置计数
         else:
