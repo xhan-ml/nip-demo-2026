@@ -17,6 +17,8 @@ class Config:
         self.lr = cfg_data["lr"]
         self.warmup_ratio = cfg_data["warmup_ratio"]
         self.dropout = cfg_data["dropout"]
+        self.patience = cfg_data["patience"]
+        self.weight_decay = cfg_data["weight_decay"]
         self.model_name = cfg_data["model_name"]
         self.swanlab_project = cfg_data["swanlab_project"]
 
@@ -34,6 +36,8 @@ class Config:
             "warmup_ratio": self.warmup_ratio,
             "dropout": self.dropout,
             "model_name": self.model_name,
+            "patience": self.patience,
+            "weight_decay": self.weight_decay,
             "swanlab_project": self.swanlab_project
         }
 

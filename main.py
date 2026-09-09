@@ -66,8 +66,20 @@ def main():
     total_step = len(train_loader) * CFG.epochs
     warmup_step = int(total_step * CFG.warmup_ratio)
 
-    # 优化器与学习率调度器
-    optimizer = AdamW(model.parameters(), lr=CFG.lr)
+    # ========== 优化器（BERT标准分组 + weight_decay） ==========
+    no_decay = ["bias", "LayerNorm.weight"]
+    optimizer_grouped_parameters = [
+        {
+            "params": [p for n, p in model.named_parameters() if not any(nd in n for nd in no_decay)],
+            "weight_decay": CFG.weight_decay,
+        },
+        {
+            "params": [p for n, p in model.named_parameters() if any(nd in n for nd in no_decay)],
+            "weight_decay": 0.0,
+        }
+    ]
+    optimizer = AdamW(optimizer_grouped_parameters, lr=CFG.lr)
+
     scheduler = get_linear_schedule_with_warmup(
         optimizer,
         num_warmup_steps=warmup_step,
@@ -75,7 +87,7 @@ def main():
     )
 
     best_val_acc = 0.0
-    patience = 2
+    patience = CFG.patience
     no_improve_count = 0
     # 训练循环
     for epoch in range(CFG.epochs):

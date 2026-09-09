@@ -12,7 +12,11 @@ class BertTextClassifier(nn.Module):
         super().__init__()
 
         # 加载原生BERT基础模型，不带分类头
-        self.bert = BertModel.from_pretrained(model_name)
+        self.bert = BertModel.from_pretrained(
+            model_name,
+            # hidden_dropout_prob=0.2,
+            # attention_probs_dropout_prob=0.2
+        )
 
         self.dropout = nn.Dropout(dropout_prob)
 
