@@ -1,32 +1,17 @@
 ## 项目结构
-
-nip‑demo‑2026/
-
-├── .venv/                  # 虚拟环境
-
-├── swanlog/                # swanlab日志保存目录
-
-├── model/
-
-│   └── bert‑base‑chinese/  # 本地BERT预训练权重
-
-├── data/
-
-│   └── 数据集文件（train/dev/test）
-
-├── config.json             # 配置文件，新增 weight_decay: 1e‑4
-
-├── config.py               # 配置类，新增weight_decay属性、to_dict输出
-
-├── model.py                # BERT+Linear分类模型
-
-├── train.py                # 训练、评估函数（set_seed、train_one_epoch、evaluate_model）
-
-├── main.py                 # 主程序：数据加载、训练循环、保存最优dev模型、测试集评估
-
-├── requirements.txt        # 依赖列表
-
+```
+nip-demo-2026/
+├── configs/                # bert预训练模型
+│   └── config1.json/
+├── main.py               # 主程序入口
+├── model.py              # BertTextClassifier模型定义
+├── dataset.py            # 数据集、dataloader、collate_fn
+├── train.py              # train_one_epoch、evaluate_model训练函数
+├── checkpoint.py         # 保存/加载checkpoint工具函数
+├── config.py             # 配置参数CFG
 └── README.md
+```
+
 ## 数据集信息
 训练集：3000条  
 验证集：1000条    
@@ -63,7 +48,7 @@ CPU训练
 
 ## 环境依赖安装
 
-pip install torch transformers tqdm numpy swanlab
+```pip install torch transformers tqdm numpy swanlab```
 
 
 ## 实验结果说明
@@ -80,8 +65,9 @@ pip install torch transformers tqdm numpy swanlab
 <img width="650" height="499" alt="image" src="https://github.com/user-attachments/assets/4061734b-7426-4c60-8599-0095b000a9b8" />
 
 ## 最后实验结果：
+针对以上实验可视化图像并未收敛，做出相应调整：增加轮次，添加调停策略
 1.参数配置
-
+```
 "max_len": 96,
  
 "batch_size": 2,
@@ -97,11 +83,12 @@ pip install torch transformers tqdm numpy swanlab
 "patience" : 5,
  
 "weight_decay": 1e-4,
-
+```
 2.可视化结果：
 <img width="1202" height="607" alt="image" src="https://github.com/user-attachments/assets/b9249bc5-8c85-49ec-8fc6-d621dfbadd1d" />
-
+```
 test_acc  = 0.8318
+```
 ## 现象总结：
 1. CPU训练场景下，batch_size不能设置过大，否则会造成硬件负载过高，程序崩溃黑屏。
 2. 减少训练轮次（早停）能够有效缓解BERT在小数据集上的过拟合问题，可以带来测试集精度提升。
