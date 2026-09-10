@@ -146,11 +146,16 @@ def main():
             print(f"\n🛑早停触发：连续{patience}轮验证集指标没有提升，终止训练！")
             break
     print("\n全部轮次训练结束，加载最优模型做测试集评估")
-    model.eval()
+
     # 读取保存好的最优权重
-    model.load_state_dict(torch.load(CFG.checkpoint_save_path, map_location=dev))
+    checkpoint = torch.load(CFG.checkpoint_save_path, map_location=dev)
+    model.load_state_dict(checkpoint["model_state_dict"])
+    model.eval()
     # 在测试集上评估
     test_loss, test_acc = evaluate_model(model, test_loader, dev)
+
+    with torch.no_grad():
+        test_loss, test_acc = evaluate_model(model, test_loader, dev)
 
     swanlab.log({
         "test_loss": test_loss,
