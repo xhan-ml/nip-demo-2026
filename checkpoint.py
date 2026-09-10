@@ -2,6 +2,11 @@ import torch
 import os
 
 def save_checkpoint(save_path, epoch, model, optimizer, scheduler, best_val_acc, no_improve_count):
+    # 新增：自动创建文件夹
+    save_dir = os.path.dirname(save_path)
+    if not os.path.exists(save_dir):
+        os.makedirs(save_dir)
+
     """保存完整训练断点"""
     checkpoint = {
         "epoch": epoch,
@@ -15,7 +20,8 @@ def save_checkpoint(save_path, epoch, model, optimizer, scheduler, best_val_acc,
     print(f"✅ 保存完整断点 {save_path}")
 
 def load_checkpoint(load_path, model, optimizer, scheduler, dev):
-    """加载完整训练断点"""
+
+
     if not os.path.exists(load_path):
         print("⚠️ 无断点文件，从头训练")
         return 0, 0.0, 0

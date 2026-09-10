@@ -8,7 +8,7 @@ class BertTextClassifier(nn.Module):
     自己组装BERT分类网络：
     基础BertModel + dropout + 手写Linear分类头
     """
-    def __init__(self, model_name: str, num_classes: int, dropout_prob: float):
+    def __init__(self, model_name: str, num_classes: int, dropout_prob: float,hidden_size:int):
         super().__init__()
 
         # 加载原生BERT基础模型，不带分类头
@@ -21,7 +21,7 @@ class BertTextClassifier(nn.Module):
         self.dropout = nn.Dropout(dropout_prob)
 
         # bert输出的隐藏维度是768，输出类别15
-        self.classifier = nn.Linear(in_features=768, out_features=num_classes)
+        self.classifier = nn.Linear(in_features=hidden_size, out_features=num_classes)
 
     def forward(self, input_ids, attention_mask):
         """
@@ -34,7 +34,7 @@ class BertTextClassifier(nn.Module):
             input_ids=input_ids,
             attention_mask=attention_mask
         )
-        # 取【CLS】位置向量，作为句子表征  shape:[batch,768]
+
         cls_emb = bert_out.pooler_output
 
         out = self.dropout(cls_emb)

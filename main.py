@@ -70,7 +70,8 @@ def main():
     model = BertTextClassifier(
         model_name=CFG.model_name,
         num_classes=num_label,
-        dropout_prob=CFG.dropout
+        dropout_prob=CFG.dropout,
+        hidden_size=CFG.hidden_size
     )
     model = model.to(dev)
 
@@ -126,7 +127,7 @@ def main():
         if val_acc > best_val_acc:
             best_val_acc = val_acc
 
-            save_checkpoint("./full_best_checkpoint.bin",
+            save_checkpoint(CFG.checkpoint_save_path,
                             epoch,
                             model,
                             optimizer,
@@ -147,7 +148,7 @@ def main():
     print("\n全部轮次训练结束，加载最优模型做测试集评估")
     model.eval()
     # 读取保存好的最优权重
-    model.load_state_dict(torch.load("./best_bert_toutiao.bin", map_location=dev))
+    model.load_state_dict(torch.load(CFG.checkpoint_save_path, map_location=dev))
     # 在测试集上评估
     test_loss, test_acc = evaluate_model(model, test_loader, dev)
 
