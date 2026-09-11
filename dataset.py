@@ -1,47 +1,23 @@
 import torch
 from torch.utils.data import Dataset
 
-
-def load_toutiao_single(filepath):
-    texts = []
-    labels = []
-    with open(filepath, encoding="utf-8") as f:
-        for line in f:
-            line = line.strip()
-            if not line:
-                continue
-            parts = line.split("_!_")
-            if len(parts) < 4:
-                continue
-            label_str = parts[1]
-            text = parts[3]
-            texts.append(text)
-            labels.append(label_str)
-    return texts, labels
-
-
-def dynamic_collate_fn(batch):
-    """动态padding，batch内部补齐到本批次最长长度"""
-    input_ids_list = [item["input_ids"] for item in batch]
-    attn_mask_list = [item["attention_mask"] for item in batch]
-    label_list = [item["labels"] for item in batch]
-
-    cur_max_len = max([len(x) for x in input_ids_list])
-
-    batch_input_ids = []
-    batch_attn_mask = []
-    for ids, mask in zip(input_ids_list, attn_mask_list):
-        pad_len = cur_max_len - len(ids)
-        new_ids = ids + [0] * pad_len
-        new_mask = mask + [0] * pad_len
-        batch_input_ids.append(new_ids)
-        batch_attn_mask.append(new_mask)
-
-    return {
-        "input_ids": torch.tensor(batch_input_ids, dtype=torch.long),
-        "attention_mask": torch.tensor(batch_attn_mask, dtype=torch.long),
-        "labels": torch.tensor(label_list, dtype=torch.long)
-    }
+#
+# def load_toutiao_single(filepath):
+#     texts = []
+#     labels = []
+#     with open(filepath, encoding="utf-8") as f:
+#         for line in f:
+#             line = line.strip()
+#             if not line:
+#                 continue
+#             parts = line.split("_!_")
+#             if len(parts) < 4:
+#                 continue
+#             label_str = parts[1]
+#             text = parts[3]
+#             texts.append(text)
+#             labels.append(label_str)
+#     return texts, labels
 
 
 class ToutiaoDataset(Dataset):
@@ -70,3 +46,46 @@ class ToutiaoDataset(Dataset):
             "attention_mask": enc["attention_mask"],
             "labels": lab
         }
+
+
+# ===== 新增：数据管理类，封装加载/label2id/构造dataset =====
+class ToutiaoDataManager:
+    def __init__(self, cfg, tokenizer):
+        # 加载三份数据
+        self.train_texts, self.train_labels = self.load_toutiao_single(cfg.train_file)
+        self.val_texts, self.val_labels = self.load_toutiao_single(cfg.val_file)
+        self.test_texts, self.test_labels = self.load_toutiao_single(cfg.test_file)
+        # 仅用训练集构建标签映射，避免数据泄露
+        label_set = set(self.train_labels)
+        label_list = sorted(label_set)
+        self.label2id = {label: idx for idx, label in enumerate(label_list)}
+
+        # 生成三个数据集实例
+        self.train_ds = ToutiaoDataset(self.train_texts, self.train_labels, tokenizer, cfg.max_len, self.label2id)
+        self.val_ds = ToutiaoDataset(self.val_texts, self.val_labels, tokenizer, cfg.max_len, self.label2id)
+        self.test_ds = ToutiaoDataset(self.test_texts, self.test_labels, tokenizer, cfg.max_len, self.label2id)
+
+    @staticmethod
+    def load_toutiao_single(filepath):
+        texts = []
+        labels = []
+        with open(filepath, encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                parts = line.split("_!_")
+                if len(parts) < 4:
+                    continue
+                label_str = parts[1]
+                text = parts[3]
+                texts.append(text)
+                labels.append(label_str)
+        return texts, labels
+
+    def print_info(self):
+        print(f"训练集样本数量：{len(self.train_texts)}")
+        print(f"验证集样本数量：{len(self.val_texts)}")
+        print(f"测试集样本数量：{len(self.test_texts)}")
+        print(f"分类类别数目：{len(self.label2id)}")
+        print(f"label2id = {self.label2id}")

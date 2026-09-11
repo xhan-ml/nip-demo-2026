@@ -1,9 +1,12 @@
 import random
 from utils import calculate_prf
-
+from checkpoint import save_checkpoint
 import numpy as np
 import torch
 from tqdm import tqdm
+from transformers import get_linear_schedule_with_warmup
+import swanlab
+from torch.optim import AdamW
 
 
 
@@ -87,3 +90,57 @@ def evaluate_model(model, loader, dev,num_classes):
 
     return avg_loss, acc,precision,recall,f1
 
+def build_optimizer_and_scheduler(model, total_step, CFG):
+    """构建分组优化器（带weight_decay）和学习率调度器"""
+    no_decay = ["bias", "LayerNorm.weight"]
+    group_params = [
+        {
+            "params": [p for n, p in model.named_parameters() if not any(nd in n for nd in no_decay)],
+            "weight_decay": CFG.weight_decay
+        },
+        {
+            "params": [p for n, p in model.named_parameters() if any(nd in n for nd in no_decay)],
+            "weight_decay": 0.0
+        }
+    ]
+    optimizer = AdamW(group_params, lr=CFG.lr)
+    warmup_step = int(total_step * CFG.warmup_ratio)
+    scheduler = get_linear_schedule_with_warmup(optimizer, warmup_step, total_step)
+    return optimizer, scheduler
+
+def run_training_loop(model, train_loader, val_loader, optimizer, scheduler, num_label, CFG, dev):
+    """训练主循环：epoch迭代、验证、早停、保存最优checkpoint"""
+    best_val_acc = 0.0
+    no_improve_count = 0
+    patience = CFG.patience
+
+    for epoch in range(CFG.epochs):
+        print(f"\n======== Epoch {epoch + 1} / {CFG.epochs} ========")
+        train_loss = train_one_epoch(model, train_loader, optimizer, scheduler, dev)
+        val_loss, val_acc, val_precision, val_recall, val_f1 = evaluate_model(model, val_loader, dev, num_label)
+
+        swanlab.log({
+            "train_loss": train_loss,
+            "val_loss": val_loss,
+            "val_acc": val_acc,
+            "val_precision": val_precision,
+            "val_recall": val_recall,
+            "val_f1": val_f1,
+            "epoch": epoch + 1
+        })
+        print(f"train_loss:{train_loss:.4f} | val_loss:{val_loss:.4f} | val_acc:{val_acc:.4f} | "
+              f"val_precision:{val_precision:.4f} | val_recall:{val_recall:.4f} | val_f1:{val_f1:.4f}")
+
+        if val_acc > best_val_acc:
+            best_val_acc = val_acc
+            save_checkpoint(CFG.checkpoint_save_path, epoch, model, optimizer, scheduler, best_val_acc, no_improve_count)
+            print(f"✅保存最优模型，best_val_acc = {best_val_acc:.4f}")
+            no_improve_count = 0
+        else:
+            no_improve_count += 1
+            print(f"⚠️验证集无提升，no_improve_count={no_improve_count}/{patience}")
+
+        if no_improve_count >= patience:
+            print(f"\n🛑早停触发：连续{patience}轮验证集指标没有提升，终止训练！")
+            break
+    return best_val_acc
