@@ -8,6 +8,7 @@ nip-demo-2026/
 ├── dataset.py            # 数据集、dataloader、collate_fn
 ├── train.py              # train_one_epoch、evaluate_model训练函数
 ├── checkpoint.py         # 保存/加载checkpoint工具函数
+├── utils.py             # p,r,f指标计算包
 ├── config.py             # 配置参数CFG
 └── README.md
 ```
@@ -84,10 +85,16 @@ CPU训练
  
 "weight_decay": 1e-4,
 ```
-2.可视化结果：
-<img width="1202" height="607" alt="image" src="https://github.com/user-attachments/assets/b9249bc5-8c85-49ec-8fc6-d621dfbadd1d" />
+2.可视化结果（新增precision，recall，f1这三个指标，并将这三个指标可视化）：
+<img width="478" height="527" alt="image" src="https://github.com/user-attachments/assets/f1c28fd7-4e65-4e0f-bb69-6615de632082" />
+<img width="460" height="554" alt="image" src="https://github.com/user-attachments/assets/e8aa3cbe-206c-4f2c-bcbe-ef8190551ae6" />
+
 ```
+test_loss = 0.7873
 test_acc  = 0.8318
+test_precision = 0.8405
+test_recall    = 0.8071
+test_f1        = 0.8193
 ```
 ## 现象总结：
 1. CPU训练场景下，batch_size不能设置过大，否则会造成硬件负载过高，程序崩溃黑屏。
