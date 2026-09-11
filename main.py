@@ -5,7 +5,7 @@ from transformers import AutoTokenizer
 from torch.optim import AdamW
 from transformers import get_linear_schedule_with_warmup
 import swanlab
-from checkpoint import save_checkpoint, load_checkpoint
+from checkpoint import save_checkpoint
 from config import CFG
 from model import BertTextClassifier
 from train import set_seed, train_one_epoch, evaluate_model
@@ -23,9 +23,9 @@ def main():
     )
 
     # 读取训练、验证、测试数据集（保留你自己的三个文件）
-    train_texts, train_labels = load_toutiao_single("./data/train_3k.txt")
-    val_texts, val_labels = load_toutiao_single("./data/dev_1k.txt")
-    test_texts, test_labels = load_toutiao_single("./data/test_1k.txt")
+    train_texts, train_labels = load_toutiao_single(CFG.train_file)
+    val_texts, val_labels = load_toutiao_single(CFG.val_file)
+    test_texts, test_labels = load_toutiao_single(CFG.test_file)
 
     # 构造标签和数字的映射
     label_set = set(train_labels)
@@ -98,7 +98,6 @@ def main():
         num_warmup_steps=warmup_step,
         num_training_steps=total_step
     )
-
     best_val_acc = 0.0
     patience = CFG.patience
     no_improve_count = 0
@@ -109,19 +108,25 @@ def main():
         # 训练一轮
         train_loss = train_one_epoch(model, train_loader, optimizer, scheduler, dev)
         # 验证集评估
-        val_loss, val_acc = evaluate_model(model, val_loader, dev)
+        val_loss, val_acc, val_precision, val_recall, val_f1 = evaluate_model(model, val_loader, dev,num_label)
 
         # 记录到swanlab
         swanlab.log({
             "train_loss": train_loss,
             "val_loss": val_loss,
             "val_acc": val_acc,
+            "val_precision": val_precision,
+            "val_recall": val_recall,
+            "val_f1": val_f1,
             "epoch": epoch + 1
         })
 
         print("train_loss:", round(train_loss, 4),
               "| val_loss:", round(val_loss, 4),
-              "| val_acc:", round(val_acc, 4))
+              "| val_acc:", round(val_acc, 4),
+              "| val_precision:", round(val_precision, 4),
+              "| val_recall:", round(val_recall, 4),
+              "| val_f1:", round(val_f1, 4))
 
         # 如果当前验证集准确率是历史最好，保存模型权重
         if val_acc > best_val_acc:
@@ -152,19 +157,26 @@ def main():
     model.load_state_dict(checkpoint["model_state_dict"])
     model.eval()
     # 在测试集上评估
-    test_loss, test_acc = evaluate_model(model, test_loader, dev)
+
 
     with torch.no_grad():
-        test_loss, test_acc = evaluate_model(model, test_loader, dev)
+        test_loss, test_acc ,test_precision, test_recall, test_f1= evaluate_model(model, test_loader, dev,num_label)
 
     swanlab.log({
         "test_loss": test_loss,
-        "test_acc": test_acc
+        "test_acc": test_acc,
+        "test_precision": test_precision,
+        "test_recall": test_recall,
+        "test_f1": test_f1,
+
     })
 
     print("\n【最终测试结果】")
     print("test_loss =", round(test_loss, 4))
     print("test_acc  =", round(test_acc, 4))
+    print("test_precision =", round(test_precision, 4))
+    print("test_recall    =", round(test_recall, 4))
+    print("test_f1        =", round(test_f1, 4))
 
     swanlab.finish()
 

@@ -11,5 +11,8 @@
   "model_name": "./model/bert-base-chinese",
   "swanlab_project": "bert-toutiao-classify",
   "checkpoint_save_path": "./outputs/config1/full_best_checkpoint.bin",
-  "hidden_size":768
+  "hidden_size":768,
+  "train_file": "./data/train_3k.txt",
+  "val_file": "./data/dev_1k.txt",
+  "test_file": "./data/test_1k.txt"
 }

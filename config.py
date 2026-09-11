@@ -4,7 +4,7 @@ import torch
 
 
 class Config:
-    def __init__(self, json_path="./configs./config1.json"):
+    def __init__(self, json_path="./configs/config1.json"):
         # 从json文件加载配置
         with open(json_path, encoding="utf-8") as f:
             cfg_data = json.load(f)
@@ -23,6 +23,9 @@ class Config:
         self.swanlab_project = cfg_data["swanlab_project"]
         self.checkpoint_save_path = cfg_data["checkpoint_save_path"]
         self.hidden_size = cfg_data["hidden_size"]
+        self.train_file = cfg_data["train_file"]
+        self.val_file = cfg_data["val_file"]
+        self.test_file = cfg_data["test_file"]
 
         # 设备，不属于json配置，代码内部判断
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -42,7 +45,10 @@ class Config:
             "weight_decay": self.weight_decay,
             "swanlab_project": self.swanlab_project,
             "checkpoint_save_path": self.checkpoint_save_path,
-            "hidden_size": self.hidden_size
+            "hidden_size": self.hidden_size,
+            "train_file": self.train_file,
+            "val_file": self.val_file,
+            "test_file": self.test_file
         }
 
 
